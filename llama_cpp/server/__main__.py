@@ -26,7 +26,7 @@ import argparse
 
 import uvicorn
 
-from llama_cpp.server.app import create_app, Settings
+from llama_cpp.server.app import init_llama, Settings, app
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     settings = Settings(**{k: v for k, v in vars(args).items() if v is not None})
-    app = create_app(settings=settings)
+    init_llama(settings=settings)
 
     uvicorn.run(
         app, host=os.getenv("HOST", settings.host), port=int(os.getenv("PORT", settings.port))

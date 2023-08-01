@@ -1,4 +1,4 @@
-import json
+import json, os
 import multiprocessing
 from re import compile, Match, Pattern
 from threading import Lock
@@ -294,21 +294,9 @@ settings: Optional[Settings] = None
 llama: Optional[llama_cpp.Llama] = None
 
 
-def create_app(settings: Optional[Settings] = None):
+def init_llama(settings: Optional[Settings] = None):
     if settings is None:
         settings = Settings()
-    app = FastAPI(
-        title="🦙 llama.cpp Python API",
-        version="0.0.1",
-    )
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-    app.include_router(router)
     global llama
     llama = llama_cpp.Llama(
         model_path=settings.model,
@@ -349,7 +337,6 @@ def create_app(settings: Optional[Settings] = None):
         settings = _settings
 
     set_settings(settings)
-    return app
 
 
 llama_outer_lock = Lock()
@@ -777,3 +764,25 @@ async def get_models(
             }
         ],
     }
+
+if os.environ.get('UVICORN_RUN', 'False') == 'True':
+    """ Initialize the llama only when the user wants to run uvicorn to handle worker
+     It is expected to pass llama-related vars via environment variables
+     since the llama object is created without any vars
+    """
+    init_llama()
+
+ 
+
+app = FastAPI(
+    title="🦙 llama.cpp Python API",
+    version="0.0.1",
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.include_router(router)
